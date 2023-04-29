@@ -98,7 +98,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     easymode = args.use_easy
     verbose = args.use_verbose
-    if not args.use_gui:
+    if args.use_gui:
         print("GUI Version wird gestartet...")
         gui = Gui(easymode)
         gui.mainloop()
