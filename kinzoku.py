@@ -46,32 +46,48 @@ def gen_recomms(cor: int) -> str:
     return ret
 
 class Gui(tk.Tk):
-    def __init__(self):
+    def __init__(self, easymode):
         tk.Tk.__init__(self)
+        self.easymode = easymode
         self.geometry(f"800x600+{(self.winfo_screenwidth() // 2) - (800 // 2)}+{(self.winfo_screenheight() // 2) - (600 // 2) - 50}")
         self.resizable(False, False)
         self.title("Kinzoku")
-        self.protocol("WM_DELETE_WINDOW", self.w_on_close)
-        self._frame = StartFrame(self)
-        self._frame.pack()
+        self.protocol("WM_DELETE_WINDOW", self.on_close)
+        self._frame = None
+        self.switch_frame(StartFrame)
     
     def switch_frame(self, frame_class):
         self._frame.destroy() if self._frame != None else None
-        self._frame = frame_class(self)
+        self._frame = frame_class(self, self.easymode)
         self._frame.pack()
 
-    def w_on_close(self):
+    def on_close(self):
         print("Fenster wird geschlossen und Programm beendet.")
         self.destroy()
         sys.exit(0)
 
 class StartFrame(tk.Frame):
-    def __init__(self, window):
-        tk.Frame.__init__(self, window)
-        title = tk.Label(window, text="Willkommen bei Kinzoku", font=("Arial", 44))
-        subtitle = tk.Label(window, text="Kinzoku ist ein Kopfrechentrainer.\nWenn du startest bekommst du 10 zufällig ausgewählte Rechnungen mit den vier Grundrechenarten im Bereich von 1 - 1000.", wraplength=750, font=("Arial", 24))
-        title.pack(pady=50)
-        subtitle.pack()
+    def __init__(self, window, easymode):
+        tk.Frame.__init__(self, window, width=800, height=600)
+        self.window = window
+        self.pack_propagate(False)
+        self.title = tk.Label(self, text="Willkommen bei Kinzoku", font=("Arial", 44))
+        self.subtitle = tk.Label(self, text="Kinzoku ist ein Kopfrechentrainer.\nWenn du startest bekommst du 10 zufällig ausgewählte Rechnungen mit den vier Grundrechenarten im Bereich von 1 - 1000.", wraplength=750, font=("Arial", 24))
+        self.easycheck = tk.Button(self, text="On" if easymode else "Off", font=("Arial", 10), width=4, height=1, command=self.toggle_easymode)
+        self.easydesc = tk.Label(self, text="Easymode (Du bekommst 5 Antworten zur Auswahl)", font=("Arial", 14))
+        self.start = tk.Button(self, text="Starten", command=self.start_run, font=("Arial", 22))
+        self.title.pack(pady=50)
+        self.subtitle.pack()
+        self.easycheck.pack(pady=30, padx=(30, 5), side=tk.LEFT, anchor="s")
+        self.easydesc.pack(pady=30, side=tk.LEFT, anchor="s")
+        self.start.pack(pady=30, padx=30, side=tk.RIGHT, anchor="s")
+
+    def toggle_easymode(self):
+        self.window.easymode = not self.window.easymode
+        self.easycheck["text"] = "On" if self.easycheck["text"] == "Off" else "Off"
+    
+    def start_run(self):
+        print("started, easymode = " + str(self.window.easymode))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="Kinzoku", description="Python Kopfrechentrainer")
@@ -84,7 +100,7 @@ if __name__ == "__main__":
     verbose = args.use_verbose
     if not args.use_gui:
         print("GUI Version wird gestartet...")
-        gui = Gui()
+        gui = Gui(easymode)
         gui.mainloop()
     clrscr()
     print("Willkommen bei Kinzoku!")
