@@ -3,6 +3,7 @@ import random
 import os
 import sys
 import time
+import tkinter as tk
 
 def clrscr() -> None:
     if os.name == "nt":
@@ -44,6 +45,34 @@ def gen_recomms(cor: int) -> str:
     random.shuffle(ret)
     return ret
 
+class Gui(tk.Tk):
+    def __init__(self):
+        tk.Tk.__init__(self)
+        self.geometry(f"800x600+{(self.winfo_screenwidth() // 2) - (800 // 2)}+{(self.winfo_screenheight() // 2) - (600 // 2) - 50}")
+        self.resizable(False, False)
+        self.title("Kinzoku")
+        self.protocol("WM_DELETE_WINDOW", self.w_on_close)
+        self._frame = StartFrame(self)
+        self._frame.pack()
+    
+    def switch_frame(self, frame_class):
+        self._frame.destroy() if self._frame != None else None
+        self._frame = frame_class(self)
+        self._frame.pack()
+
+    def w_on_close(self):
+        print("Fenster wird geschlossen und Programm beendet.")
+        self.destroy()
+        sys.exit(0)
+
+class StartFrame(tk.Frame):
+    def __init__(self, window):
+        tk.Frame.__init__(self, window)
+        title = tk.Label(window, text="Willkommen bei Kinzoku", font=("Arial", 44))
+        subtitle = tk.Label(window, text="Kinzoku ist ein Kopfrechentrainer.\nWenn du startest bekommst du 10 zufällig ausgewählte Rechnungen mit den vier Grundrechenarten im Bereich von 1 - 1000.", wraplength=750, font=("Arial", 24))
+        title.pack(pady=50)
+        subtitle.pack()
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="Kinzoku", description="Python Kopfrechentrainer")
     parser.add_argument("-g", "--gui", action="store_true", default=False, dest="use_gui", help="Öffnet das Programm mit einer grafischen Benutzeroberfläche")
@@ -53,10 +82,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     easymode = args.use_easy
     verbose = args.use_verbose
-    if args.use_gui:
+    if not args.use_gui:
         print("GUI Version wird gestartet...")
-        while True:
-            pass
+        gui = Gui()
+        gui.mainloop()
     clrscr()
     print("Willkommen bei Kinzoku!")
     print("Kinzoku ist ein Kopfrechentrainer.")
