@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import tkinter as tk
+from tkinter import ttk
 
 def clrscr() -> None:
     if os.name == "nt":
@@ -49,6 +50,9 @@ class Gui(tk.Tk):
     def __init__(self, easymode):
         tk.Tk.__init__(self)
         self.easymode = easymode
+        self.gamevals = []
+        self.call("source", "Azure-ttk-theme/azure.tcl")
+        self.call("set_theme", "dark")
         self.geometry(f"800x600+{(self.winfo_screenwidth() // 2) - (800 // 2)}+{(self.winfo_screenheight() // 2) - (600 // 2) - 50}")
         self.resizable(False, False)
         self.title("Kinzoku")
@@ -58,7 +62,7 @@ class Gui(tk.Tk):
     
     def switch_frame(self, frame_class):
         self._frame.destroy() if self._frame != None else None
-        self._frame = frame_class(self, self.easymode)
+        self._frame = frame_class(self)
         self._frame.pack()
 
     def on_close(self):
@@ -66,28 +70,27 @@ class Gui(tk.Tk):
         self.destroy()
         sys.exit(0)
 
-class StartFrame(tk.Frame):
-    def __init__(self, window, easymode):
-        tk.Frame.__init__(self, window, width=800, height=600)
+class StartFrame(ttk.Frame):
+    def __init__(self, window):
+        ttk.Frame.__init__(self, window, width=800, height=600)
         self.window = window
         self.pack_propagate(False)
-        self.title = tk.Label(self, text="Willkommen bei Kinzoku", font=("Arial", 44))
-        self.subtitle = tk.Label(self, text="Kinzoku ist ein Kopfrechentrainer.\nWenn du startest bekommst du 10 zufällig ausgewählte Rechnungen mit den vier Grundrechenarten im Bereich von 1 - 1000.", wraplength=750, font=("Arial", 24))
-        self.easycheck = tk.Button(self, text="On" if easymode else "Off", font=("Arial", 10), width=4, height=1, command=self.toggle_easymode)
-        self.easydesc = tk.Label(self, text="Easymode (Du bekommst 5 Antworten zur Auswahl)", font=("Arial", 14))
-        self.start = tk.Button(self, text="Starten", command=self.start_run, font=("Arial", 22))
+        self.title = ttk.Label(self, text="Willkommen bei Kinzoku", font=("Arial", 44))
+        self.subtitle = ttk.Label(self, text="Kinzoku ist ein Kopfrechentrainer.\nWenn du startest bekommst du 10 zufällig ausgewählte Rechnungen mit den vier Grundrechenarten im Bereich von 1 - 1000.", wraplength=750, font=("Arial", 24))
+        self.easycheck = ttk.Checkbutton(self, text="Easymode (Du bekommst 5 Antworten zur Auswahl)", command=self.toggle_easymode, style="Switch.TCheckbutton")
+        self.easycheck.state(["selected"]) if window.easymode else None
+        self.start = ttk.Button(self, text="Starten", command=lambda: window.switch_frame(CalcFrame))
         self.title.pack(pady=50)
         self.subtitle.pack()
-        self.easycheck.pack(pady=30, padx=(30, 5), side=tk.LEFT, anchor="s")
-        self.easydesc.pack(pady=30, side=tk.LEFT, anchor="s")
-        self.start.pack(pady=30, padx=30, side=tk.RIGHT, anchor="s")
+        self.easycheck.pack(padx=(30, 5), pady=30, ipadx=0, ipady=0, side=tk.LEFT, anchor="s")
+        self.start.pack(padx=30, pady=30, ipadx=10, ipady=10, side=tk.RIGHT, anchor="s")
 
     def toggle_easymode(self):
         self.window.easymode = not self.window.easymode
-        self.easycheck["text"] = "On" if self.easycheck["text"] == "Off" else "Off"
-    
-    def start_run(self):
-        print("started, easymode = " + str(self.window.easymode))
+
+class CalcFrame(ttk.Frame):
+    def __init__(self, window):
+        ttk.Frame.__init__(self, window, width=800, height=600)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="Kinzoku", description="Python Kopfrechentrainer")
