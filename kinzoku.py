@@ -77,16 +77,29 @@ class StartFrame(ttk.Frame):
         self.pack_propagate(False)
         self.title = ttk.Label(self, text="Willkommen bei Kinzoku", font=("Arial", 44))
         self.subtitle = ttk.Label(self, text="Kinzoku ist ein Kopfrechentrainer.\nWenn du startest bekommst du 10 zufällig ausgewählte Rechnungen mit den vier Grundrechenarten im Bereich von 1 - 1000.", wraplength=750, font=("Arial", 24))
-        self.easycheck = ttk.Checkbutton(self, text="Easymode (Du bekommst 5 Antworten zur Auswahl)", command=self.toggle_easymode, style="Switch.TCheckbutton")
+        self.subframe = ttk.Frame(self)
+        self.easycheck = ttk.Checkbutton(self.subframe, text="Easymode (Du bekommst 5 Antworten zur Auswahl)", command=self.toggle_easymode, style="Switch.TCheckbutton")
         self.easycheck.state(["selected"]) if window.easymode else None
+        self.themeswitch = ttk.Checkbutton(self.subframe, text="Dark Mode", command=self.change_theme, style="Switch.TCheckbutton")
+        self.themeswitch.state(["selected"])
         self.start = ttk.Button(self, text="Starten", command=lambda: window.switch_frame(CalcFrame))
         self.title.pack(pady=50)
         self.subtitle.pack()
-        self.easycheck.pack(padx=(30, 5), pady=30, ipadx=0, ipady=0, side=tk.LEFT, anchor="s")
+        self.subframe.pack(padx=30, pady=30, side=tk.LEFT, anchor="s")
+        self.themeswitch.pack(side=tk.TOP, anchor="w")
+        self.easycheck.pack(side=tk.TOP, anchor="w")
         self.start.pack(padx=30, pady=30, ipadx=10, ipady=10, side=tk.RIGHT, anchor="s")
 
     def toggle_easymode(self):
         self.window.easymode = not self.window.easymode
+    
+    def change_theme(self):
+        if self.window.call("ttk::style", "theme", "use") == "azure-dark":
+            self.window.call("set_theme", "light")
+            self.themeswitch["text"] = "Light Mode"
+        else:
+            self.window.call("set_theme", "dark")
+            self.themeswitch["text"] = "Dark Mode"
 
 class CalcFrame(ttk.Frame):
     def __init__(self, window):
