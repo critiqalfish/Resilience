@@ -49,8 +49,12 @@ def gen_recomms(cor: int) -> str:
 class Gui(tk.Tk):
     def __init__(self, easymode):
         tk.Tk.__init__(self)
-        self.easymode = easymode
-        self.gamevals = []
+        self.gamevars = {
+            "easymode": easymode,
+            "round": 0,
+            "correct": 0,
+            "total": 0
+        }
         self.call("source", "Azure-ttk-theme/azure.tcl")
         self.call("set_theme", "dark")
         self.geometry(f"800x600+{(self.winfo_screenwidth() // 2) - (800 // 2)}+{(self.winfo_screenheight() // 2) - (600 // 2) - 50}")
@@ -75,23 +79,26 @@ class StartFrame(ttk.Frame):
         ttk.Frame.__init__(self, window, width=800, height=600)
         self.window = window
         self.pack_propagate(False)
+
         self.title = ttk.Label(self, text="Willkommen bei Kinzoku", font=("Arial", 44))
         self.subtitle = ttk.Label(self, text="Kinzoku ist ein Kopfrechentrainer.\nWenn du startest bekommst du 10 zufällig ausgewählte Rechnungen mit den vier Grundrechenarten im Bereich von 1 - 1000.", wraplength=750, font=("Arial", 24))
-        self.subframe = ttk.Frame(self)
-        self.easycheck = ttk.Checkbutton(self.subframe, text="Easymode (Du bekommst 5 Antworten zur Auswahl)", command=self.toggle_easymode, style="Switch.TCheckbutton")
-        self.easycheck.state(["selected"]) if window.easymode else None
-        self.themeswitch = ttk.Checkbutton(self.subframe, text="Dark Mode", command=self.change_theme, style="Switch.TCheckbutton")
-        self.themeswitch.state(["selected"])
+        self.optionsframe = ttk.Frame(self)
+        self.easycheck = ttk.Checkbutton(self.optionsframe, text="Easymode (Du bekommst 5 Antworten zur Auswahl)", command=self.toggle_easymode, style="Switch.TCheckbutton")
+        self.themeswitch = ttk.Checkbutton(self.optionsframe, text="Dark Mode", command=self.change_theme, style="Switch.TCheckbutton")
         self.start = ttk.Button(self, text="Starten", command=lambda: window.switch_frame(CalcFrame))
+
         self.title.pack(pady=50)
         self.subtitle.pack()
-        self.subframe.pack(padx=30, pady=30, side=tk.LEFT, anchor="s")
+        self.optionsframe.pack(padx=30, pady=30, side=tk.LEFT, anchor="s")
         self.themeswitch.pack(side=tk.TOP, anchor="w")
         self.easycheck.pack(side=tk.TOP, anchor="w")
         self.start.pack(padx=30, pady=30, ipadx=10, ipady=10, side=tk.RIGHT, anchor="s")
 
+        self.easycheck.state(["selected"]) if window.gamevars["easymode"] else None
+        self.themeswitch.state(["selected"])
+
     def toggle_easymode(self):
-        self.window.easymode = not self.window.easymode
+        self.window.gamevars["easymode"] = not self.window.gamevars["easymode"]
     
     def change_theme(self):
         if self.window.call("ttk::style", "theme", "use") == "azure-dark":
@@ -102,6 +109,41 @@ class StartFrame(ttk.Frame):
             self.themeswitch["text"] = "Dark Mode"
 
 class CalcFrame(ttk.Frame):
+    def __init__(self, window):
+        ttk.Frame.__init__(self, window, width=800, height=600)
+        self.pack_propagate(False)
+        self.timer = 0.0
+        self.calculation = random.choice([gen_addition, gen_subtraction, gen_multiplication, gen_division])()
+        self.recomms = gen_recomms(self.calculation[2]) if window.gamevars["easymode"] else False
+
+        self.title = ttk.Label(self, text=f"{window.gamevars['round']}. Rechnung:", font=("Arial", 22))
+        self.timerlabel = ttk.Label(self, text="0.0 Sekunden", font=("Arial", 22))
+        self.middleframe = ttk.Frame(self)
+        self.calculation_label = ttk.Label(self.middleframe, text=f"{self.calculation[0]} {self.calculation[3]} {self.calculation[1]}", font=("Arial", 30))
+        self.answer = ttk.Entry(self.middleframe, validate="key", validatecommand=(self.register(self.input_validation), "%S"))
+        
+        self.title.pack(padx=10, pady=10, side=tk.LEFT, anchor="n")
+        self.timerlabel.pack(padx=10, pady=10, side=tk.RIGHT, anchor="n")
+        self.middleframe.place(anchor="c", relx=.5, rely=.5)
+        self.calculation_label.pack()
+        self.answer.pack()
+
+        self.answer.focus()
+        self.after(100, self.update_timer)
+
+    def input_validation(self, S):
+        if S.isdigit():
+            return True
+        else:
+            self.bell()
+            return False
+    
+    def update_timer(self):
+        self.timer += 0.1
+        self.timerlabel["text"] = f"{round(self.timer, 1)} Sekunde{'n' if round(self.timer, 1) != 1.0 else '  '}"
+        self.after(100, self.update_timer)
+
+class EndFrame(ttk.Frame):
     def __init__(self, window):
         ttk.Frame.__init__(self, window, width=800, height=600)
 
