@@ -13,3 +13,5 @@ all you need installed is python 3
 
 ### what else?
 the program is currently in german, maybe i will translate it someday
+thanks for the theme: https://github.com/rdbende/Azure-ttk-theme
+thanks for the icon: https://www.hrmonline.com.au/topics/health-wellbeing-and-safety/hr-focus-resilience/
