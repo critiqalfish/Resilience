@@ -56,7 +56,8 @@ class Gui(tk.Tk):
             "round": 0,
             "correct": 0,
             "points": 0,
-            "total": 0
+            "total": 0,
+            "time": 0.0
         }
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("com.critiqalfish.resilience")
         self.iconbitmap("resilience-icon.ico")
@@ -129,10 +130,9 @@ class CalcFrame(ttk.Frame):
         self.timer = 0.0
         self.calculation = random.choice([gen_addition, gen_subtraction, gen_multiplication, gen_division])()
         self.recomms = gen_recomms(self.calculation[2]) if window.gamevars["easymode"] else False
-        window.gamevars["round"] += 1
 
         self.topframe = ttk.Frame(self)
-        self.title = ttk.Label(self.topframe, text=f"{window.gamevars['round']}. Rechnung:", font=("Arial", 22))
+        self.title = ttk.Label(self.topframe, text=f"{window.gamevars['round'] + 1}. Rechnung:", font=("Arial", 22))
         self.timer_label = ttk.Label(self.topframe, text="0.0 Sekunden", font=("Arial", 22))
         self.middleframe = ttk.Frame(self)
         self.calculation_label = ttk.Label(self.middleframe, text=f"{self.calculation[0]} {self.calculation[3]} {self.calculation[1]}", font=("Arial", 30))
@@ -192,12 +192,15 @@ class CalcFrame(ttk.Frame):
             self.window.unbind("<Return>")
             self.answer.state(["disabled"])
         if not self.window.gamevars["easymode"] and not self.answer.get() == "" and int(self.answer.get()) == self.calculation[2] or event == self.calculation[2]:
-            points = 3 if round(self.timer, 1) < 10.0 else 2 if round(self.timer, 1) < 20.0 else 1
+            points = 3 if self.timer < 10.0 else 2 if self.timer < 20.0 else 1
             self.window.gamevars["correct"] += 1
             self.window.gamevars["points"] += points
-            self.result["text"] = f"Toll gemacht! Du hast die Rechnung in {int(round(self.timer, 1)) if round(self.timer, 1) == int(round(self.timer, 1)) else round(self.timer, 1)} Sekunde{'' if round(self.timer, 1) == 1.0 else 'n'} gelöst.\n\nDas gibt {points} Punkt{'e' if points != 1 else ''}"
+            self.result["text"] = f"Toll gemacht! Du hast die Rechnung in {int(self.timer) if self.timer == int(self.timer) else self.timer} Sekunde{'' if self.timer == 1.0 else 'n'} gelöst.\n\nDas gibt {points} Punkt{'e' if points != 1 else ''}"
         else:
-            self.result["text"] = f"Wie schade! Du hast {int(round(self.timer, 1)) if round(self.timer, 1) == int(round(self.timer, 1)) else round(self.timer, 1)} Sekunde{'' if round(self.timer, 1) == 1.0 else 'n'} gebraucht und trotzdem falsch gerechnet.\nDas richtige Ergebnis wäre {self.calculation[2]} gewesen."
+            self.result["text"] = f"Wie schade! Du hast {int(self.timer) if self.timer == int(self.timer) else self.timer} Sekunde{'' if self.timer == 1.0 else 'n'} gebraucht und trotzdem falsch gerechnet.\nDas richtige Ergebnis wäre {self.calculation[2]} gewesen."
+        self.window.gamevars["round"] += 1
+        self.window.gamevars["total"] += 3
+        self.window.gamevars["time"] += self.timer
         self.timer_label["text"] = f"Gesamtpunkte: {self.window.gamevars['points']}"
         self.result.pack_configure(ipady=30)
         self.after_cancel(self.tk_timer)
@@ -219,14 +222,34 @@ class CalcFrame(ttk.Frame):
         self.window.switch_frame(EndFrame)
 
     def update_timer(self):
-        self.timer += 0.1
-        self.timer_label["text"] = f"{round(self.timer, 1)} Sekunde{'n' if round(self.timer, 1) != 1.0 else '  '}"
+        self.timer = round(self.timer + 0.1, 1)
+        self.timer_label["text"] = f"{self.timer} Sekunde{'n' if self.timer != 1.0 else '  '}"
         self.tk_timer = self.after(100, self.update_timer)
 
 class EndFrame(ttk.Frame):
     def __init__(self, window):
         ttk.Frame.__init__(self, window, width=800, height=600)
+        self.window = window
         self.pack_propagate(False)
+
+        self.title = ttk.Label(self, text="Ergebnis:", font=("Arial", 44))
+        self.calcs_stat = ttk.Label(self, text=f"Korrekt gelöst: {window.gamevars['correct']} / {window.gamevars['round']}", font=("Arial", 24))
+        self.points_stat = ttk.Label(self, text=f"Punkte gesammelt: {window.gamevars['points']} / {window.gamevars['total']}", font=("Arial", 24))
+        self.time_stat = ttk.Label(self, text=f"Gesamte Rechenzeit: {round(window.gamevars['time'], 1)} Sekunde{'n' if round(window.gamevars['time'], 1) != 1.0 else ''}", font=("Arial", 24))
+        self.stats_tree = ttk.Treeview(self)
+        self.again = ttk.Button(self, text="Erneut spielen", command=self.play_again)
+        self.quit = ttk.Button(self, text="Beenden", command=window.on_close, style="Accent.TButton")
+
+        self.title.pack(pady=40)
+        self.calcs_stat.pack()
+        self.points_stat.pack()
+        self.time_stat.pack()
+        self.again.pack(padx=30, pady=30, ipadx=10, ipady=10, side=tk.LEFT, anchor="s")
+        self.quit.pack(padx=30, pady=30, ipadx=10, ipady=10, side=tk.RIGHT, anchor="s")
+
+    def play_again(self):
+        self.window.gamevars["round"], self.window.gamevars["correct"], self.window.gamevars["points"], self.window.gamevars["total"], self.window.gamevars["time"] = 0, 0, 0, 0, 0.0
+        self.window.switch_frame(StartFrame)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="Resilience", description="Python Kopfrechentrainer")
