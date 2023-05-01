@@ -53,13 +53,14 @@ class Gui(tk.Tk):
             "easymode": easymode,
             "round": 0,
             "correct": 0,
+            "points": 0,
             "total": 0
         }
         self.call("source", "Azure-ttk-theme/azure.tcl")
         self.call("set_theme", "dark")
         self.geometry(f"800x600+{(self.winfo_screenwidth() // 2) - (800 // 2)}+{(self.winfo_screenheight() // 2) - (600 // 2) - 50}")
         self.resizable(False, False)
-        self.title("Kinzoku")
+        self.title("Resilience")
         self.protocol("WM_DELETE_WINDOW", self.on_close)
         self._frame = None
         self.switch_frame(StartFrame)
@@ -80,8 +81,8 @@ class StartFrame(ttk.Frame):
         self.window = window
         self.pack_propagate(False)
 
-        self.title = ttk.Label(self, text="Willkommen bei Kinzoku", font=("Arial", 44))
-        self.subtitle = ttk.Label(self, text="Kinzoku ist ein Kopfrechentrainer.\nWenn du startest bekommst du 10 zufällig ausgewählte Rechnungen mit den vier Grundrechenarten im Bereich von 1 - 1000.", wraplength=750, font=("Arial", 24))
+        self.title = ttk.Label(self, text="Willkommen bei Resilience", font=("Arial", 44))
+        self.subtitle = ttk.Label(self, text="Resilience ist ein Kopfrechentrainer.\nWenn du startest bekommst du 10 zufällig ausgewählte Rechnungen mit den vier Grundrechenarten im Bereich von 1 - 1000.", wraplength=750, font=("Arial", 24))
         self.optionsframe = ttk.Frame(self)
         self.easycheck = ttk.Checkbutton(self.optionsframe, text="Easymode (Du bekommst 5 Antworten zur Auswahl)", command=self.toggle_easymode, style="Switch.TCheckbutton")
         self.themeswitch = ttk.Checkbutton(self.optionsframe, text="Dark Mode", command=self.change_theme, style="Switch.TCheckbutton")
@@ -111,25 +112,35 @@ class StartFrame(ttk.Frame):
 class CalcFrame(ttk.Frame):
     def __init__(self, window):
         ttk.Frame.__init__(self, window, width=800, height=600)
+        self.window = window
         self.pack_propagate(False)
         self.timer = 0.0
         self.calculation = random.choice([gen_addition, gen_subtraction, gen_multiplication, gen_division])()
         self.recomms = gen_recomms(self.calculation[2]) if window.gamevars["easymode"] else False
 
-        self.title = ttk.Label(self, text=f"{window.gamevars['round']}. Rechnung:", font=("Arial", 22))
-        self.timerlabel = ttk.Label(self, text="0.0 Sekunden", font=("Arial", 22))
+        self.topframe = ttk.Frame(self)
+        self.title = ttk.Label(self.topframe, text=f"{window.gamevars['round']}. Rechnung:", font=("Arial", 22))
+        self.timer_label = ttk.Label(self.topframe, text="0.0 Sekunden", font=("Arial", 22))
         self.middleframe = ttk.Frame(self)
         self.calculation_label = ttk.Label(self.middleframe, text=f"{self.calculation[0]} {self.calculation[3]} {self.calculation[1]}", font=("Arial", 30))
         self.answer = ttk.Entry(self.middleframe, validate="key", validatecommand=(self.register(self.input_validation), "%S"))
+        self.bottomframe = ttk.Frame(self)
+        self.finish = ttk.Button(self.bottomframe, text="Fertig", command=self.on_finish)
+        self.quit = ttk.Button(self.bottomframe, text="Frühzeitig\nBeenden", command=self.on_quit)
         
-        self.title.pack(padx=10, pady=10, side=tk.LEFT, anchor="n")
-        self.timerlabel.pack(padx=10, pady=10, side=tk.RIGHT, anchor="n")
+        self.topframe.pack(side=tk.TOP, fill=tk.BOTH)
+        self.title.pack(padx=10, pady=10, side=tk.LEFT, anchor="w")
+        self.timer_label.pack(padx=10, pady=10, side=tk.RIGHT, anchor="e")
         self.middleframe.place(anchor="c", relx=.5, rely=.5)
         self.calculation_label.pack()
         self.answer.pack()
+        self.bottomframe.pack(side=tk.BOTTOM, fill=tk.BOTH)
+        self.quit.pack(padx=30, pady=30, ipadx=10, ipady=2, side=tk.LEFT, anchor="w")
+        self.finish.pack(padx=30, pady=30, ipadx=10, ipady=10, side=tk.RIGHT, anchor="e")
 
         self.answer.focus()
-        self.after(100, self.update_timer)
+        window.bind("<Return>", self.on_finish)
+        self.tk_timer = self.after(100, self.update_timer)
 
     def input_validation(self, S):
         if S.isdigit():
@@ -137,18 +148,35 @@ class CalcFrame(ttk.Frame):
         else:
             self.bell()
             return False
+
+    def on_finish(self, event = 0):
+        print("'" + self.answer.get() + "'")
+        # to do: validation and tell the user the outcome
+        self.window.unbind("<Return>") if not window.gamevars["easymode"] else None
+        self.after_cancel(self.tk_timer)
+        self.finish.configure(text = "Nächste\nRechnung", command=self.on_next)
+        self.window.bind("<Return>", self.on_next)
     
+    def on_next(self, event = 0):
+        self.window.switch_frame(CalcFrame)
+
+    def on_quit(self):
+        self.window.unbind("<Return>") if not window.gamevars["easymode"] else None
+        self.after_cancel(self.tk_timer)
+        self.window.switch_frame(EndFrame)
+
     def update_timer(self):
         self.timer += 0.1
-        self.timerlabel["text"] = f"{round(self.timer, 1)} Sekunde{'n' if round(self.timer, 1) != 1.0 else '  '}"
-        self.after(100, self.update_timer)
+        self.timer_label["text"] = f"{round(self.timer, 1)} Sekunde{'n' if round(self.timer, 1) != 1.0 else '  '}"
+        self.tk_timer = self.after(100, self.update_timer)
 
 class EndFrame(ttk.Frame):
     def __init__(self, window):
         ttk.Frame.__init__(self, window, width=800, height=600)
+        self.pack_propagate(False)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(prog="Kinzoku", description="Python Kopfrechentrainer")
+    parser = argparse.ArgumentParser(prog="Resilience", description="Python Kopfrechentrainer")
     parser.add_argument("-g", "--gui", action="store_true", default=False, dest="use_gui", help="Öffnet das Programm mit einer grafischen Benutzeroberfläche")
     parser.add_argument("-e", "--easy", action="store_true", default=False, dest="use_easy", help="Aktiviert den Easy-Modus bei dem dir fünf potenziell richtige Ergebnisse vorgeschlagen werden")
     parser.add_argument("-v", "--verbose", action="store_true", default=False, dest="use_verbose", help="Aktiviert den verbosen Modus")
@@ -161,8 +189,8 @@ if __name__ == "__main__":
         gui = Gui(easymode)
         gui.mainloop()
     clrscr()
-    print("Willkommen bei Kinzoku!")
-    print("Kinzoku ist ein Kopfrechentrainer.")
+    print("Willkommen bei Resilience!")
+    print("Resilience ist ein Kopfrechentrainer.")
     print("Wenn du startest bekommst du 10 zufällig ausgewählte Rechnungen mit den vier Grundrechenarten im Bereich von 1 - 1000.\n")
     if easymode:
         print("Der Easy Mode ist aktiviert, dir werden bei jeder Rechnung 5 Vorschläge gegeben von denen einer richtig ist.")
