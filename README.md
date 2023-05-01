@@ -12,6 +12,6 @@ all you need installed is python 3
 `python resilience.py -h` for more help  
 
 ### what else?
-the program is currently in german, maybe i will translate it someday
-thanks for the theme: https://github.com/rdbende/Azure-ttk-theme
-thanks for the icon: https://www.hrmonline.com.au/topics/health-wellbeing-and-safety/hr-focus-resilience/
+the program is currently in german, maybe i will translate it someday  
+thanks for the theme: https://github.com/rdbende/Azure-ttk-theme  
+thanks for the icon: https://www.hrmonline.com.au/topics/health-wellbeing-and-safety/hr-focus-resilience/  
