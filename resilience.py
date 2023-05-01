@@ -66,6 +66,7 @@ class Gui(tk.Tk):
         self.switch_frame(StartFrame)
     
     def switch_frame(self, frame_class):
+        self.unbind("<Return>")
         self._frame.destroy() if self._frame != None else None
         self._frame = frame_class(self)
         self._frame.pack()
@@ -97,6 +98,7 @@ class StartFrame(ttk.Frame):
 
         self.easycheck.state(["selected"]) if window.gamevars["easymode"] else None
         self.themeswitch.state(["selected"])
+        window.bind("<Return>", lambda _: window.switch_frame(CalcFrame))
 
     def toggle_easymode(self):
         self.window.gamevars["easymode"] = not self.window.gamevars["easymode"]
@@ -117,13 +119,14 @@ class CalcFrame(ttk.Frame):
         self.timer = 0.0
         self.calculation = random.choice([gen_addition, gen_subtraction, gen_multiplication, gen_division])()
         self.recomms = gen_recomms(self.calculation[2]) if window.gamevars["easymode"] else False
+        window.gamevars["round"] += 1
 
         self.topframe = ttk.Frame(self)
         self.title = ttk.Label(self.topframe, text=f"{window.gamevars['round']}. Rechnung:", font=("Arial", 22))
         self.timer_label = ttk.Label(self.topframe, text="0.0 Sekunden", font=("Arial", 22))
         self.middleframe = ttk.Frame(self)
         self.calculation_label = ttk.Label(self.middleframe, text=f"{self.calculation[0]} {self.calculation[3]} {self.calculation[1]}", font=("Arial", 30))
-        self.answer = ttk.Entry(self.middleframe, validate="key", validatecommand=(self.register(self.input_validation), "%S"))
+        self.answer = ttk.Entry(self.middleframe, justify="center", validate="key", validatecommand=(self.register(self.input_validation), "%S"))
         self.result = ttk.Label(self.middleframe, text="", wraplength=700, font=("Arial", 20), justify="center")
         self.bottomframe = ttk.Frame(self)
         self.finish = ttk.Button(self.bottomframe, text="Fertig", command=self.on_finish)
@@ -152,22 +155,32 @@ class CalcFrame(ttk.Frame):
             return False
 
     def on_finish(self, event = 0):
-        # to do: validation and tell the user the outcome
         if not self.window.gamevars["easymode"]:
             self.window.unbind("<Return>")
-            if self.answer.get() == self.calculation[2]:
-                self.result["text"] = f"Toll gemacht! Du hast die Rechnung in {int(round(self.timer, 1)) if round(self.timer, 1) == int(round(self.timer, 1)) else round(self.timer, 1)} Sekunde{'' if round(self.timer, 1) == 1.0 else 'n'} gelöst."
-            else:
-                self.result["text"] = f"Wie schade! Du hast {int(round(self.timer, 1)) if round(self.timer, 1) == int(round(self.timer, 1)) else round(self.timer, 1)} Sekunde{'' if round(self.timer, 1) == 1.0 else 'n'} gebraucht und trotzdem falsch gerechnet.\nDas richtige Ergebnis wäre {self.calculation[2]} gewesen."
+            self.answer.state(["disabled"])
         else:
             pass
+        if not self.answer.get() == "" and int(self.answer.get()) == self.calculation[2]: # or the easymode answer
+            points = 3 if round(self.timer, 1) < 10.0 else 2 if round(self.timer, 1) < 20.0 else 1
+            self.window.gamevars["correct"] += 1
+            self.window.gamevars["points"] += points
+            self.result["text"] = f"Toll gemacht! Du hast die Rechnung in {int(round(self.timer, 1)) if round(self.timer, 1) == int(round(self.timer, 1)) else round(self.timer, 1)} Sekunde{'' if round(self.timer, 1) == 1.0 else 'n'} gelöst.\n\nDas gibt {points} Punkt{'e' if points != 1 else ''}"
+        else:
+            self.result["text"] = f"Wie schade! Du hast {int(round(self.timer, 1)) if round(self.timer, 1) == int(round(self.timer, 1)) else round(self.timer, 1)} Sekunde{'' if round(self.timer, 1) == 1.0 else 'n'} gebraucht und trotzdem falsch gerechnet.\nDas richtige Ergebnis wäre {self.calculation[2]} gewesen."
+        self.timer_label["text"] = f"Gesamtpunkte: {self.window.gamevars['points']}"
+        self.result.pack_configure(ipady=30)
         self.after_cancel(self.tk_timer)
-        self.finish.configure(text="Nächste\nRechnung", command=self.on_next)
-        self.finish.pack_configure(ipady=2)
+        if self.window.gamevars["round"] < 10:
+            self.finish.pack_configure(ipady=2)
+            self.finish.configure(text="Nächste\nRechnung", command=self.on_next)
+        else:
+            self.quit.pack_forget()
+            self.finish.pack_configure(ipady=10)
+            self.finish.configure(text="Beenden", command=self.on_next)
         self.window.bind("<Return>", self.on_next)
-    
+
     def on_next(self, event = 0):
-        self.window.switch_frame(CalcFrame)
+        self.window.switch_frame(CalcFrame if self.window.gamevars["round"] < 10 else EndFrame)
 
     def on_quit(self):
         self.window.unbind("<Return>") if not self.window.gamevars["easymode"] else None
