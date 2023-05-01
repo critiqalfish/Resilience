@@ -3,6 +3,7 @@ import random
 import os
 import sys
 import time
+import ctypes
 import tkinter as tk
 from tkinter import ttk
 
@@ -47,15 +48,18 @@ def gen_recomms(cor: int) -> str:
     return ret
 
 class Gui(tk.Tk):
-    def __init__(self, easymode):
+    def __init__(self, easymode, endlessmode):
         tk.Tk.__init__(self)
         self.gamevars = {
             "easymode": easymode,
+            "endlessmode": endlessmode,
             "round": 0,
             "correct": 0,
             "points": 0,
             "total": 0
         }
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("com.critiqalfish.resilience")
+        self.iconbitmap("resilience-icon.ico")
         self.call("source", "Azure-ttk-theme/azure.tcl")
         self.call("set_theme", "dark")
         self.geometry(f"800x600+{(self.winfo_screenwidth() // 2) - (800 // 2)}+{(self.winfo_screenheight() // 2) - (600 // 2) - 50}")
@@ -85,24 +89,24 @@ class StartFrame(ttk.Frame):
         self.title = ttk.Label(self, text="Willkommen bei Resilience", font=("Arial", 44))
         self.subtitle = ttk.Label(self, text="Resilience ist ein Kopfrechentrainer.\n\nWenn du startest bekommst du 10 zufällig ausgewählte Rechnungen mit den vier Grundrechenarten im Bereich von 1 - 1000.", justify="center", wraplength=750, font=("Arial", 24))
         self.optionsframe = ttk.Frame(self)
-        self.easycheck = ttk.Checkbutton(self.optionsframe, text="Easymode (Du bekommst 5 Antworten zur Auswahl)", command=self.toggle_easymode, style="Switch.TCheckbutton")
         self.themeswitch = ttk.Checkbutton(self.optionsframe, text="Dark Mode", command=self.change_theme, style="Switch.TCheckbutton")
-        self.start = ttk.Button(self, text="Starten", command=lambda: window.switch_frame(CalcFrame))
+        self.endlessswitch = ttk.Checkbutton(self.optionsframe, text="Endless Mode (Unendlich Rechnungen, anstatt 10)", command=self.toggle_endless, style="Switch.TCheckbutton")
+        self.easyswitch = ttk.Checkbutton(self.optionsframe, text="Easymode (Du bekommst 5 Antworten zur Auswahl)", command=self.toggle_easymode, style="Switch.TCheckbutton")
+        self.start = ttk.Button(self, text="Starten", command=lambda: window.switch_frame(CalcFrame), style="Accent.TButton")
 
         self.title.pack(pady=50)
         self.subtitle.pack()
         self.optionsframe.pack(padx=30, pady=30, side=tk.LEFT, anchor="s")
         self.themeswitch.pack(side=tk.TOP, anchor="w")
-        self.easycheck.pack(side=tk.TOP, anchor="w")
+        self.endlessswitch.pack(side=tk.TOP, anchor="w")
+        self.easyswitch.pack(side=tk.TOP, anchor="w")
         self.start.pack(padx=30, pady=30, ipadx=10, ipady=10, side=tk.RIGHT, anchor="s")
 
-        self.easycheck.state(["selected"]) if window.gamevars["easymode"] else None
         self.themeswitch.state(["selected"])
+        self.endlessswitch.state(["selected"]) if window.gamevars["endlessmode"] else None
+        self.easyswitch.state(["selected"]) if window.gamevars["easymode"] else None
         window.bind("<Return>", lambda _: window.switch_frame(CalcFrame))
 
-    def toggle_easymode(self):
-        self.window.gamevars["easymode"] = not self.window.gamevars["easymode"]
-    
     def change_theme(self):
         if self.window.call("ttk::style", "theme", "use") == "azure-dark":
             self.window.call("set_theme", "light")
@@ -110,6 +114,12 @@ class StartFrame(ttk.Frame):
         else:
             self.window.call("set_theme", "dark")
             self.themeswitch["text"] = "Dark Mode"
+
+    def toggle_endless(self):
+        self.window.gamevars["endlessmode"] = not self.window.gamevars["endlessmode"]
+
+    def toggle_easymode(self):
+        self.window.gamevars["easymode"] = not self.window.gamevars["easymode"]    
 
 class CalcFrame(ttk.Frame):
     def __init__(self, window):
@@ -126,28 +136,49 @@ class CalcFrame(ttk.Frame):
         self.timer_label = ttk.Label(self.topframe, text="0.0 Sekunden", font=("Arial", 22))
         self.middleframe = ttk.Frame(self)
         self.calculation_label = ttk.Label(self.middleframe, text=f"{self.calculation[0]} {self.calculation[3]} {self.calculation[1]}", font=("Arial", 30))
-        self.answer = ttk.Entry(self.middleframe, justify="center", validate="key", validatecommand=(self.register(self.input_validation), "%S"))
+        if window.gamevars["easymode"]:
+            self.recommframe = ttk.Frame(self.middleframe)
+            self.recomm_buttons = []
+            for i in range(5):
+                self.recomm_buttons.append(ttk.Button(self.recommframe, text=f"{self.recomms[i]}", command=lambda i=i: self.on_finish(self.recomms[i]), style="Accent.TButton"))
+        else:
+            self.answer = ttk.Entry(self.middleframe, justify="center", validate="key", validatecommand=(self.register(self.input_validation), "%S", "%P"))
         self.result = ttk.Label(self.middleframe, text="", wraplength=700, font=("Arial", 20), justify="center")
         self.bottomframe = ttk.Frame(self)
         self.finish = ttk.Button(self.bottomframe, text="Fertig", command=self.on_finish)
-        self.quit = ttk.Button(self.bottomframe, text="Frühzeitig\nBeenden", command=self.on_quit)
+        self.quit = ttk.Button(self.bottomframe, text="Frühzeitig\nBeenden" if not window.gamevars["endlessmode"] else "Beenden", command=self.on_quit)
         
         self.topframe.pack(side=tk.TOP, fill=tk.BOTH)
         self.title.pack(padx=10, pady=10, side=tk.LEFT, anchor="w")
         self.timer_label.pack(padx=10, pady=10, side=tk.RIGHT, anchor="e")
         self.middleframe.place(anchor="c", relx=.5, rely=.5)
         self.calculation_label.pack()
-        self.answer.pack()
+        if window.gamevars["easymode"]:
+            self.recommframe.pack()
+            for button in self.recomm_buttons:
+                button.pack(side=tk.LEFT, padx=5, pady=5, ipady=5)
+        else:
+            self.answer.pack()
         self.result.pack()
         self.bottomframe.pack(side=tk.BOTTOM, fill=tk.BOTH)
-        self.quit.pack(padx=30, pady=30, ipadx=10, ipady=2, side=tk.LEFT, anchor="w")
-        self.finish.pack(padx=30, pady=30, ipadx=10, ipady=10, side=tk.RIGHT, anchor="e")
+        self.quit.pack(padx=30, pady=30, ipadx=10, ipady=2 if not window.gamevars["endlessmode"] else 10, side=tk.LEFT, anchor="w")
 
-        self.answer.focus()
-        window.bind("<Return>", self.on_finish)
+        if window.gamevars["easymode"]:
+            pass
+        else:
+            self.finish.pack(padx=30, pady=30, ipadx=10, ipady=10, side=tk.RIGHT, anchor="e")
+            self.answer.focus()
         self.tk_timer = self.after(100, self.update_timer)
 
-    def input_validation(self, S):
+    def input_validation(self, S, P):
+        if P == "" and self.finish.instate(["!disabled"]):
+            self.finish.state(["disabled"])
+            self.window.unbind("<Return>")
+            self.finish.configure(style="TButton")
+        else:
+            self.finish.state(["!disabled"])
+            self.window.bind("<Return>", self.on_finish)
+            self.finish.configure(style="Accent.TButton")
         if S.isdigit():
             return True
         else:
@@ -155,12 +186,12 @@ class CalcFrame(ttk.Frame):
             return False
 
     def on_finish(self, event = 0):
-        if not self.window.gamevars["easymode"]:
+        if self.window.gamevars["easymode"]:
+            self.recommframe.pack_forget()
+        else:
             self.window.unbind("<Return>")
             self.answer.state(["disabled"])
-        else:
-            pass
-        if not self.answer.get() == "" and int(self.answer.get()) == self.calculation[2]: # or the easymode answer
+        if not self.window.gamevars["easymode"] and not self.answer.get() == "" and int(self.answer.get()) == self.calculation[2] or event == self.calculation[2]:
             points = 3 if round(self.timer, 1) < 10.0 else 2 if round(self.timer, 1) < 20.0 else 1
             self.window.gamevars["correct"] += 1
             self.window.gamevars["points"] += points
@@ -170,17 +201,17 @@ class CalcFrame(ttk.Frame):
         self.timer_label["text"] = f"Gesamtpunkte: {self.window.gamevars['points']}"
         self.result.pack_configure(ipady=30)
         self.after_cancel(self.tk_timer)
-        if self.window.gamevars["round"] < 10:
-            self.finish.pack_configure(ipady=2)
-            self.finish.configure(text="Nächste\nRechnung", command=self.on_next)
+        if self.window.gamevars["round"] < 10 or self.window.gamevars["endlessmode"]:
+            self.finish.pack(padx=30, pady=30, ipadx=10, ipady=2, side=tk.RIGHT, anchor="e")
+            self.finish.configure(text="Nächste\nRechnung", command=self.on_next, style="Accent.TButton")
         else:
             self.quit.pack_forget()
-            self.finish.pack_configure(ipady=10)
-            self.finish.configure(text="Beenden", command=self.on_next)
+            self.finish.pack(padx=30, pady=30, ipadx=10, ipady=10, side=tk.RIGHT, anchor="e")
+            self.finish.configure(text="Beenden", command=self.on_next, style="Accent.TButton")
         self.window.bind("<Return>", self.on_next)
 
     def on_next(self, event = 0):
-        self.window.switch_frame(CalcFrame if self.window.gamevars["round"] < 10 else EndFrame)
+        self.window.switch_frame(CalcFrame if self.window.gamevars["round"] < 10 or self.window.gamevars["endlessmode"] else EndFrame)
 
     def on_quit(self):
         self.window.unbind("<Return>") if not self.window.gamevars["easymode"] else None
@@ -200,15 +231,17 @@ class EndFrame(ttk.Frame):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="Resilience", description="Python Kopfrechentrainer")
     parser.add_argument("-g", "--gui", action="store_true", default=False, dest="use_gui", help="Öffnet das Programm mit einer grafischen Benutzeroberfläche")
-    parser.add_argument("-e", "--easy", action="store_true", default=False, dest="use_easy", help="Aktiviert den Easy-Modus bei dem dir fünf potenziell richtige Ergebnisse vorgeschlagen werden")
+    parser.add_argument("-e", "--easy", action="store_true", default=False, dest="use_easy", help="Aktiviert den Easy-Modus bei dem dir 5 potenziell richtige Ergebnisse vorgeschlagen werden")
+    parser.add_argument("-i", "--infinity", action="store_true", default=False, dest="use_infinity", help="Aktiviert den Endless-Modus wobei dir unendlich anstatt 10 Rechnung gegeben werden")
     parser.add_argument("-v", "--verbose", action="store_true", default=False, dest="use_verbose", help="Aktiviert den verbosen Modus")
     parser._actions[0].help = "Zeigt diese Hilfenachricht"
     args = parser.parse_args()
     easymode = args.use_easy
+    endlessmode = args.use_infinity
     verbose = args.use_verbose
     if args.use_gui:
         print("GUI Version wird gestartet...")
-        gui = Gui(easymode)
+        gui = Gui(easymode, endlessmode)
         gui.mainloop()
     clrscr()
     print("Willkommen bei Resilience!")
@@ -216,6 +249,10 @@ if __name__ == "__main__":
     print("Wenn du startest bekommst du 10 zufällig ausgewählte Rechnungen mit den vier Grundrechenarten im Bereich von 1 - 1000.\n")
     if easymode:
         print("Der Easy Mode ist aktiviert, dir werden bei jeder Rechnung 5 Vorschläge gegeben von denen einer richtig ist.")
+    if endlessmode:
+        print("Der Endless Mode ist aktiviert, dir werden unendlich anstatt 10 Rechnungen gegeben.")
+    if easymode or endlessmode:
+        print()
     if input("Starten? (q für beenden): ")[:1].lower() == "q":
         sys.exit(0)
     count = 1
@@ -244,7 +281,7 @@ if __name__ == "__main__":
             print(f"Wie schade! Du hast {int(timer) if timer == int(timer) else timer} Sekunde{'' if timer == 1.0 else 'n'} gebraucht und trotzdem falsch gerechnet.")
             print(f"Das richtige Ergebnis wäre {calc[2]} gewesen.")
         count += 1
-        if count == 11 and str(input("Beenden?: ")) + "x" or input("Nächste Rechnung? (q für beenden): ")[:1].lower() == "q":
+        if not endlessmode and count == 11 and str(input("Beenden?: ")) + "x" or input("Nächste Rechnung? (q für beenden): ")[:1].lower() == "q":
             clrscr()
             print(f"Du hast insgesamt {correct} / {count - 1} Rechnung{'en' if count - 1 != 1 else ''} gelöst und dabei {total} / {(count - 1) * 3} Punkten erreicht.")
             break
