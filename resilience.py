@@ -82,7 +82,7 @@ class StartFrame(ttk.Frame):
         self.pack_propagate(False)
 
         self.title = ttk.Label(self, text="Willkommen bei Resilience", font=("Arial", 44))
-        self.subtitle = ttk.Label(self, text="Resilience ist ein Kopfrechentrainer.\nWenn du startest bekommst du 10 zufällig ausgewählte Rechnungen mit den vier Grundrechenarten im Bereich von 1 - 1000.", wraplength=750, font=("Arial", 24))
+        self.subtitle = ttk.Label(self, text="Resilience ist ein Kopfrechentrainer.\n\nWenn du startest bekommst du 10 zufällig ausgewählte Rechnungen mit den vier Grundrechenarten im Bereich von 1 - 1000.", justify="center", wraplength=750, font=("Arial", 24))
         self.optionsframe = ttk.Frame(self)
         self.easycheck = ttk.Checkbutton(self.optionsframe, text="Easymode (Du bekommst 5 Antworten zur Auswahl)", command=self.toggle_easymode, style="Switch.TCheckbutton")
         self.themeswitch = ttk.Checkbutton(self.optionsframe, text="Dark Mode", command=self.change_theme, style="Switch.TCheckbutton")
@@ -124,7 +124,7 @@ class CalcFrame(ttk.Frame):
         self.middleframe = ttk.Frame(self)
         self.calculation_label = ttk.Label(self.middleframe, text=f"{self.calculation[0]} {self.calculation[3]} {self.calculation[1]}", font=("Arial", 30))
         self.answer = ttk.Entry(self.middleframe, validate="key", validatecommand=(self.register(self.input_validation), "%S"))
-        self.result = ttk.Label(self.middleframe, text="", wraplength=700, font=("Arial", 20))
+        self.result = ttk.Label(self.middleframe, text="", wraplength=700, font=("Arial", 20), justify="center")
         self.bottomframe = ttk.Frame(self)
         self.finish = ttk.Button(self.bottomframe, text="Fertig", command=self.on_finish)
         self.quit = ttk.Button(self.bottomframe, text="Frühzeitig\nBeenden", command=self.on_quit)
@@ -152,14 +152,13 @@ class CalcFrame(ttk.Frame):
             return False
 
     def on_finish(self, event = 0):
-        print("'" + self.answer.get() + "'")
         # to do: validation and tell the user the outcome
         if not self.window.gamevars["easymode"]:
             self.window.unbind("<Return>")
             if self.answer.get() == self.calculation[2]:
                 self.result["text"] = f"Toll gemacht! Du hast die Rechnung in {int(round(self.timer, 1)) if round(self.timer, 1) == int(round(self.timer, 1)) else round(self.timer, 1)} Sekunde{'' if round(self.timer, 1) == 1.0 else 'n'} gelöst."
             else:
-                self.result["text"] = f"Wie schade! Du hast {int(round(self.timer, 1)) if round(self.timer, 1) == int(round(self.timer, 1)) else round(self.timer, 1)} Sekunde{'' if round(self.timer, 1) == 1.0 else 'n'} gebraucht und trotzdem falsch gerechnet."
+                self.result["text"] = f"Wie schade! Du hast {int(round(self.timer, 1)) if round(self.timer, 1) == int(round(self.timer, 1)) else round(self.timer, 1)} Sekunde{'' if round(self.timer, 1) == 1.0 else 'n'} gebraucht und trotzdem falsch gerechnet.\nDas richtige Ergebnis wäre {self.calculation[2]} gewesen."
         else:
             pass
         self.after_cancel(self.tk_timer)
