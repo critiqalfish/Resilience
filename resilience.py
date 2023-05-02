@@ -275,7 +275,7 @@ class EndFrame(ttk.Frame):
             self.stats_tree.insert(parent="", index=tk.END, values=(v[0], v[1], v[2], v[3], v[4], v[5]))
 
     def play_again(self):
-        self.window.gamevars["round"], self.window.gamevars["correct"], self.window.gamevars["points"], self.window.gamevars["total"], self.window.gamevars["time"] = 0, 0, 0, 0, 0.0
+        self.window.gamevars["round"], self.window.gamevars["correct"], self.window.gamevars["points"], self.window.gamevars["total"], self.window.gamevars["time"], self.window.calculation_list = 0, 0, 0, 0, 0.0, []
         self.window.switch_frame(StartFrame)
 
 if __name__ == "__main__":
