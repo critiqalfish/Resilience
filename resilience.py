@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import ctypes
+import webbrowser
 import tkinter as tk
 from tkinter import ttk
 
@@ -95,6 +96,7 @@ class StartFrame(ttk.Frame):
         self.endlessswitch = ttk.Checkbutton(self.optionsframe, text="Endless Mode (Unendlich Rechnungen, anstatt 10)", command=self.toggle_endless, style="Switch.TCheckbutton")
         self.easyswitch = ttk.Checkbutton(self.optionsframe, text="Easymode (Du bekommst 5 Antworten zur Auswahl)", command=self.toggle_easymode, style="Switch.TCheckbutton")
         self.start = ttk.Button(self, text="Starten", command=lambda: window.switch_frame(CalcFrame), style="Accent.TButton")
+        self.credit = tk.Label(self, text="Mady by Colinus", font=("Arial", 9))
 
         self.title.pack(pady=50)
         self.subtitle.pack()
@@ -103,10 +105,14 @@ class StartFrame(ttk.Frame):
         self.endlessswitch.pack(side=tk.TOP, anchor="w")
         self.easyswitch.pack(side=tk.TOP, anchor="w")
         self.start.pack(padx=30, pady=30, ipadx=10, ipady=10, side=tk.RIGHT, anchor="s")
+        self.credit.place(relx=0.835, rely=0.96)
 
         self.themeswitch.state(["selected"])
         self.endlessswitch.state(["selected"]) if window.gamevars["endlessmode"] else None
         self.easyswitch.state(["selected"]) if window.gamevars["easymode"] else None
+        self.credit.bind("<Button-1>", lambda _: webbrowser.open_new("https://github.com/critiqalfish/Resilience"))
+        self.credit.bind("<Enter>", lambda _: self.credit.configure(fg="pink"))
+        self.credit.bind("<Leave>", lambda _: self.credit.configure(fg="white"))
         window.bind("<Return>", lambda _: window.switch_frame(CalcFrame))
 
     def change_theme(self):
